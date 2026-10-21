@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>性能初筛</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef1f4;
+      --card: #fff;
+      --text: #1c2430;
+      --muted: #5d6975;
+      --line: #e2e6eb;
+      --accent: #0f6f6c;
+      --accent-hover: #0c5c59;
+      --accent-soft: #e7f3f2;
+      --p0: #b42318;
+      --p0-soft: #fdf4f3;
+      --p0-line: #f0d0cc;
+      --p1: #b45309;
+      --p1-soft: #fff8ef;
+      --p1-line: #f3e0c4;
+      --p2: #1d4e89;
+      --p2-soft: #f3f7fb;
+      --p2-line: #d5e3f1;
+      --ok: #0b6b3a;
+      --ok-soft: #f1faf4;
+      --ok-line: #b7e0c8;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      font: 15px/1.5 "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    main { max-width: 920px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 {
+      font-size: 22px;
+      font-weight: 650;
+      line-height: 1.3;
+      margin: 0 0 8px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    h2 { font-size: 16px; font-weight: 650; margin: 24px 0 8px; }
+    p { margin: 0; }
+    .muted { color: var(--muted); }
+    #run, .report {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-top: 16px;
+    }
+    .report h2 { margin: 0 0 8px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    label:first-of-type { margin-top: 0; }
+    input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      font: inherit;
+      background: #fff;
+      color: var(--text);
+    }
+    input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .actions { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
+    .ok { color: var(--ok); }
+    .status {
+      margin-top: 16px;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--card);
+    }
+    .status.muted { margin-top: 12px; padding: 0; border: 0; background: transparent; }
+    .status.ok { color: var(--ok); border-color: var(--ok-line); background: var(--ok-soft); }
+    .status.error { color: var(--p0); border-color: var(--p0-line); background: var(--p0-soft); }
+    .status:empty { display: none; }
+    input[readonly] { background: #f7f8fa; color: var(--muted); }
+    .path-row { display: flex; gap: 8px; align-items: center; }
+    .path-row input { flex: 1; min-width: 0; }
+    .hint { margin-top: 8px; font-size: 13px; }
+    button {
+      margin: 0;
+      border: 0;
+      border-radius: var(--radius);
+      padding: 8px 14px;
+      font: inherit;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+    }
+    button.primary { font-weight: 650; padding: 9px 18px; }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); }
+    button.secondary {
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+    button.secondary:hover:not(:disabled) { background: #f4faf9; border-color: #c5d6d4; }
+    button:disabled { opacity: 0.55; cursor: default; }
+    #go { min-width: 7.5em; }
+    .busy {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+      padding: 14px 16px;
+      border: 1px solid #cfe3e1;
+      border-radius: var(--radius);
+      background: var(--accent-soft);
+    }
+    .busy p { font-weight: 650; }
+    .spinner {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      border: 3px solid rgba(15, 111, 108, 0.22);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .spinner { animation: none; }
+    }
+    #settings {
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    #config { margin-top: 12px; }
+    #config button { margin-top: 12px; }
+    summary { cursor: pointer; font-size: 15px; }
+    #run-error:not(:empty) {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--p0-line);
+      background: var(--p0-soft);
+    }
+    #ask {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+    .counts { display: flex; gap: 12px; margin-top: 12px; }
+    .count {
+      min-width: 84px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fafbfc;
+    }
+    .count b { display: block; font-size: 20px; font-weight: 650; line-height: 1.2; }
+    .count div { font-size: 13px; color: var(--muted); }
+    .count.p0 { background: var(--p0-soft); border-color: var(--p0-line); }
+    .count.p1 { background: var(--p1-soft); border-color: var(--p1-line); }
+    .count.p2 { background: var(--p2-soft); border-color: var(--p2-line); }
+    .count.p0 b { color: var(--p0); }
+    .count.p1 b { color: var(--p1); }
+    .count.p2 b { color: var(--p2); }
+    .p0 { color: var(--p0); }
+    .p1 { color: var(--p1); }
+    .p2 { color: var(--p2); }
+    article {
+      border-top: 1px solid var(--line);
+      padding: 14px 0;
+    }
+    #list article:first-child { border-top: 0; }
+    article h3 { margin: 0 0 4px; font-size: 16px; font-weight: 650; }
+    .proc { display: flex; gap: 10px; align-items: baseline; margin: 0 0 8px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      padding: 0 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 20px;
+      color: #fff;
+    }
+    .badge.p0 { color: #fff; background: var(--p0); }
+    .badge.p1 { color: #fff; background: var(--p1); }
+    .badge.p2 { color: #fff; background: var(--p2); }
+    .problem { margin: 8px 0 0; }
+    .problem h3 { font-size: 15px; font-weight: 650; }
+    .meta { color: var(--muted); font-size: 13px; }
+    details.evidence { margin-top: 6px; }
+    details.evidence summary { font-size: 13px; color: var(--muted); }
+    pre {
+      white-space: pre-wrap;
+      background: #f7f8fa;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      font: 12px/1.45 ui-monospace, Consolas, monospace;
+    }
+    .error { color: var(--p0); margin-top: 8px; }
+    .error:empty { display: none; margin: 0; }
+    #open-trace { margin-top: 12px; }
+    #open-trace:not(:disabled):not([aria-disabled="true"]) {
+      color: var(--accent);
+      border-color: #b7d4d2;
+    }
+    a.link-button {
+      display: inline-block;
+      margin-top: 14px;
+      text-decoration: none;
+      text-align: center;
+      border-radius: 8px;
+      padding: 9px 16px;
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+    a.link-button[hidden],
+    #open-trace[hidden] { display: none !important; }
+    a.link-button.is-disabled,
+    a.link-button[aria-disabled="true"],
+    #open-trace:disabled,
+    #open-trace[aria-disabled="true"] {
+      opacity: 0.55;
+      pointer-events: none;
+      cursor: default;
+    }
+    html { overflow-x: hidden; }
+    .trace-layer {
+      display: none;
+      position: fixed;
+      top: 0;
+      height: 100vh;
+      width: 100vw;
+      background: var(--bg);
+      z-index: 40;
+      flex-direction: column;
+      color: var(--text);
+    }
+    .trace-layer.is-parking,
+    .trace-layer.is-open { display: flex; }
+    .trace-layer.is-parking {
+      left: -150vw;
+      pointer-events: none;
+    }
+    .trace-layer.is-open {
+      left: 0;
+      pointer-events: auto;
+    }
+    .trace-layer header {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--card);
+      border-bottom: 1px solid var(--line);
+    }
+    .trace-layer header h1 {
+      font-size: 16px;
+      margin: 0;
+      font-weight: 650;
+      line-height: 1.3;
+      padding-left: 10px;
+      border-left: 3px solid var(--accent);
+    }
+    .trace-layer header button { margin-top: 0; }
+    .trace-layer header select { width: auto; max-width: 280px; padding: 6px 10px; }
+    #trace-status { color: var(--muted); flex: 1; font-size: 13px; }
+    .trace-body { flex: 1; display: flex; min-height: 0; }
+    #trace-side {
+      width: 380px;
+      overflow: auto;
+      padding: 14px 14px 24px;
+      border-right: 1px solid var(--line);
+      background: var(--bg);
+    }
+    #trace-side .side-intro {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    #trace-side .side-note {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    #trace-side .side-note summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+    #trace-side .side-note p { margin: 4px 0 0; font-size: 12px; color: var(--muted); line-height: 1.45; }
+    #trace-side .dir-list { display: flex; flex-direction: column; gap: 8px; }
+    #trace-side .dir-card {
+      margin: 0;
+      padding: 10px 12px 11px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--text);
+    }
+    #trace-side .dir-card.is-p0 { border-left: 3px solid var(--p0); }
+    #trace-side .dir-card.is-p1 { border-left: 3px solid var(--p1); }
+    #trace-side .dir-card.is-p2 { border-left: 3px solid var(--p2); }
+    #trace-side .badge { flex: 0 0 auto; margin-top: 1px; }
+    #trace-side .dir-head { display: flex; gap: 8px; align-items: flex-start; }
+    #trace-side .dir-copy { min-width: 0; flex: 1; }
+    #trace-side .dir-proc {
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+    #trace-side .dir-dim {
+      margin-top: 1px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    #trace-side .dir-conclusion {
+      margin: 8px 0 0;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    #trace-side .dir-advice {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    #trace-side details.evidence { margin: 6px 0 0; }
+    #trace-side details.evidence summary { font-size: 12px; cursor: pointer; }
+    #trace-side pre { margin: 6px 0 0; }
+    #trace-viewer { flex: 1; min-width: 0; position: relative; background: #111; }
+    #trace-viewer iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+    @media (max-width: 900px) {
+      .trace-body { flex-direction: column; }
+      #trace-side { width: auto; max-height: 42vh; }
+      #trace-viewer { min-height: 58vh; }
+    }
+    .turn { margin-top: 12px; }
+    .turn .who { font-size: 13px; }
+    .turn p { margin-top: 4px; white-space: pre-wrap; }
+    @media (max-width: 720px) { .row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>性能初筛</h1>
+    <p class="muted">Windows 双击「一键安装.bat」，Mac 双击「一键安装.command」。不填 API Key 也能分析。确认目录后开始分析，结论出来后可以继续提问。</p>
+    <p id="connection" class="status" role="status" aria-live="polite"></p>
+
+    <form id="run">
+      <label for="path-input">日志目录</label>
+      <div class="path-row">
+        <input id="path-input" placeholder="粘贴目录路径，或点右侧浏览" spellcheck="false" />
+        <button id="browse" class="secondary" type="button">浏览…</button>
+      </div>
+      <p class="hint muted">浏览只填入路径，不会立刻分析。zip 和 gz 会自动解压，再按文件头和内容识别 logcat、bugreport、tombstone、pftrace。</p>
+      <div class="actions">
+        <button id="go" class="primary" type="submit" disabled>开始分析</button>
+      </div>
+      <div id="busy" class="busy" hidden role="status" aria-live="polite" aria-atomic="true">
+        <span class="spinner" aria-hidden="true"></span>
+        <p>正在读取日志并定级</p>
+      </div>
+      <p id="ready" class="muted"></p>
+      <p id="run-error" class="error"></p>
+    </form>
+
+    <details id="settings">
+      <summary>模型设置（只需第一次）</summary>
+      <form id="config">
+        <label for="model">模型</label>
+        <select id="model"></select>
+        <label for="base">API 地址</label>
+        <input id="base" readonly />
+        <label for="key">API Key</label>
+        <input id="key" type="password" placeholder="只有这项需要填写，保存在本机且不回显" autocomplete="off" />
+        <button id="save-key" class="secondary" type="submit">保存并测试</button>
+        <p id="config-state" class="muted"></p>
+      </form>
+    </details>
+
+    <section id="out" class="report" hidden>
+      <h2>有问题的进程</h2>
+      <p id="upgrade" class="muted"></p>
+      <div class="counts" id="counts"></div>
+      <p id="ai-error" class="error"></p>
+      <div id="notes" class="muted"></div>
+      <p id="trace-hint" class="hint muted"></p>
+      <button id="open-trace" class="secondary" type="button" hidden disabled aria-disabled="true">查看 trace 分析</button>
+      <div id="list"></div>
+      <form id="ask">
+        <label for="question">继续提问</label>
+        <div class="path-row">
+          <input id="question" placeholder="例如：某个进程为什么是这个等级" maxlength="500" />
+          <button id="ask-go" class="secondary" type="submit">提问</button>
+        </div>
+        <p id="ask-hint" class="hint muted"></p>
+        <div id="thread"></div>
+      </form>
+    </section>
+  </main>
+  <div id="trace-layer" class="trace-layer" aria-hidden="true">
+    <header>
+      <button id="trace-back" class="secondary" type="button">返回结论</button>
+      <h1>Trace 分析</h1>
+      <select id="trace-picker" hidden></select>
+      <button id="trace-retry" class="secondary" type="button" hidden>重试加载</button>
+      <span id="trace-status">正在后台加载 Perfetto …</span>
+    </header>
+    <div class="trace-body">
+      <aside id="trace-side"></aside>
+      <div id="trace-viewer">
+        <iframe id="perfetto" title="Perfetto" loading="eager"></iframe>
+      </div>
+    </div>
+  </div>
+  <script src="/perfetto.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let providers = [];
+    let lastPath = "";
+    let savedHost = "";
+    let viewEpoch = 0;
+    let preloadEpoch = 0;
+    let session = null;
+    let layerTraces = [];
+    let shownTraceCount = 0;
+    let analyzing = false;
+
+    function hostOf(url) {
+      try { return new URL(url).host; } catch { return ""; }
+    }
+
+    function renderModelOptions(selected) {
+      const select = $("model");
+      select.replaceChildren();
+      const groups = new Map();
+      for (const item of providers) {
+        if (!groups.has(item.group)) {
+          const group = document.createElement("optgroup");
+          group.label = item.group;
+          groups.set(item.group, group);
+          select.append(group);
+        }
+        const option = document.createElement("option");
+        option.value = item.id;
+        option.textContent = item.label;
+        groups.get(item.group).append(option);
+      }
+      if (selected && providers.some((item) => item.id === selected)) select.value = selected;
+      if (!select.value && select.options.length) select.selectedIndex = 0;
+    }
+
+    function currentProvider() {
+      return providers.find((item) => item.id === $("model").value);
+    }
+
+    function applyModelAddress(announce) {
+      const model = currentProvider();
+      if (!model) return;
+      const previous = hostOf($("base").value);
+      $("base").value = model.base_url;
+      if (announce && savedHost && hostOf(model.base_url) !== savedHost) {
+        $("config-state").textContent = previous === savedHost
+          ? "服务已切换，请填写这一家的 API Key"
+          : $("config-state").textContent;
+      }
+    }
+
+    async function loadConfig() {
+      try {
+        const data = await fetch("/api/config").then((r) => r.json());
+        providers = Array.isArray(data.providers) ? data.providers : [];
+        renderModelOptions(data.model);
+        applyModelAddress(false);
+        savedHost = hostOf(data.base_url || "");
+        $("base").value = data.base_url || (currentProvider() ? currentProvider().base_url : "");
+        lastPath = data.last_path || "";
+        showPath(lastPath);
+        $("settings").open = !data.has_key;
+        $("ready").textContent = data.perfetto
+          ? "调度分析组件已安装。目录里如果有 pftrace，会一并看主线程调度。"
+          : "调度分析组件不在安装包里。请重新运行本机的一键安装。";
+        const restored = restoreConclusion();
+        if (!data.has_key) {
+          setStatus("未配置 API Key。可以直接分析，结论来自规则。", "muted");
+          await restored;
+          return;
+        }
+        setStatus("正在测试已保存的 API Key…", "muted");
+        showProbe(await postJson("/api/test-connection", {}));
+        await restored;
+      } catch (error) {
+        setStatus("测试没有完成：" + (error.message || error), "error");
+        $("settings").open = true;
+        if (viewEpoch === 0 && $("out").hidden) await restoreConclusion();
+      }
+    }
+
+    function showPath(path) {
+      lastPath = path || "";
+      $("path-input").value = lastPath;
+      $("go").disabled = analyzing || !lastPath;
+    }
+
+    function setStatus(text, kind) {
+      $("config-state").textContent = text;
+      $("config-state").className = kind === "ok" ? "ok" : kind === "error" ? "error" : "muted";
+      $("connection").textContent = text;
+      $("connection").className = "status " + (kind === "ok" ? "ok" : kind === "error" ? "error" : "muted");
+    }
+
+    function showProbe(probe) {
+      if (!probe) return;
+      const model = currentProvider();
+      const name = model ? model.label : "";
+      const detail = probe.message || (probe.ok ? "可用" : "不可用");
+      setStatus(name ? name + "：" + detail : detail, probe.ok ? "ok" : "error");
+      if (!probe.ok) $("settings").open = true;
+    }
+
+    async function postJson(url, body) {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body || {}),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "请求失败");
+      return data;
+    }
+
+    async function saveConfig() {
+      const testing = Boolean($("key").value.trim());
+      setStatus(testing ? "正在测试 API Key…" : "正在切换模型…", "muted");
+      const body = { model: $("model").value };
+      if (testing) body.api_key = $("key").value.trim();
+      try {
+        const data = await postJson("/api/config", body);
+        $("key").value = "";
+        savedHost = hostOf($("base").value);
+        if (data.probe) showProbe(data.probe);
+        else if (data.has_key) {
+          setStatus("正在测试已保存的 API Key…", "muted");
+          showProbe(await postJson("/api/test-connection", {}));
+        } else {
+          setStatus("这一家还没有 API Key。分析仍会进行，结论来自规则。", "muted");
+        }
+      } catch (error) {
+        setStatus("测试没有完成：" + (error.message || error), "error");
+        $("settings").open = true;
+      }
+    }
+
+    $("model").addEventListener("change", async () => {
+      applyModelAddress(true);
+      await saveConfig();
+    });
+
+    $("config").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await saveConfig();
+    });
+
+    function setTraceLink(mode) {
+      const link = $("open-trace");
+      if (!link) return;
+      if (mode === "ready") {
+        link.hidden = false;
+        link.disabled = false;
+        link.removeAttribute("aria-disabled");
+        link.classList.remove("is-disabled");
+        return;
+      }
+      link.disabled = true;
+      link.setAttribute("aria-disabled", "true");
+      link.classList.add("is-disabled");
+      link.hidden = !(mode === "busy" && !$("out").hidden);
+    }
+
+    function showParking() {
+      const layer = $("trace-layer");
+      if (!layer || layer.classList.contains("is-open")) return;
+      layer.classList.add("is-parking");
+      layer.classList.remove("is-open");
+      layer.setAttribute("aria-hidden", "true");
+    }
+
+    function showOpen() {
+      const layer = $("trace-layer");
+      layer.classList.remove("is-parking");
+      layer.classList.add("is-open");
+      layer.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+      const frame = $("perfetto");
+      if (!frame) return;
+      frame.style.height = "99%";
+      requestAnimationFrame(() => { frame.style.height = "100%"; });
+    }
+
+    function showClosed() {
+      const layer = $("trace-layer");
+      document.body.style.overflow = "";
+      const phase = session ? session.phase() : "idle";
+      if (phase === "booting" || phase === "posting" || phase === "ready") {
+        layer.classList.remove("is-open");
+        layer.classList.add("is-parking");
+        layer.setAttribute("aria-hidden", "true");
+        return;
+      }
+      layer.classList.remove("is-open", "is-parking");
+      layer.setAttribute("aria-hidden", "true");
+    }
+
+    function onTraceStatus(text) {
+      const status = $("trace-status");
+      if (status) status.textContent = text;
+    }
+
+    function onTraceTimings(timings) {
+      const previousClick = window.__traceTimings && window.__traceTimings.clickAt;
+      const srcAtClick = window.__traceTimings && window.__traceTimings.iframeSrcAtClick;
+      const phaseAtClick = window.__traceTimings && window.__traceTimings.phaseAtClick;
+      window.__traceTimings = Object.assign({}, timings, {
+        clickAt: previousClick || 0,
+        iframeSrcAtClick: srcAtClick || "",
+        phaseAtClick: phaseAtClick || "",
+      });
+      const retry = $("trace-retry");
+      if (retry) retry.hidden = timings.phase !== "error";
+      if (timings.phase === "ready" && shownTraceCount > 0 && $("trace-hint")) {
+        $("trace-hint").textContent = "本次有 " + shownTraceCount + " 份 trace。时间线已在后台载入，打开即可查看。";
+      }
+    }
+
+    function ensureSession() {
+      if (session) return session;
+      session = window.PerfettoHost.createSession($("perfetto"), {
+        onStatus: onTraceStatus,
+        onTimings: onTraceTimings,
+      });
+      return session;
+    }
+
+    function cancelPreload() {
+      if (session) session.cancel();
+    }
+
+    function startPreload(traces) {
+      if (!traces || !traces.length || !window.PerfettoHost) return;
+      layerTraces = traces.slice();
+      preloadEpoch += 1;
+      showParking();
+      ensureSession().load(traces[0], { epoch: preloadEpoch });
+    }
+
+    async function openTraceLayer() {
+      const button = $("open-trace");
+      if (!button || button.disabled || button.getAttribute("aria-disabled") === "true") return;
+      window.__traceTimings = window.__traceTimings || {};
+      window.__traceTimings.clickAt = performance.now();
+      window.__traceTimings.iframeSrcAtClick = $("perfetto") ? $("perfetto").src : "";
+      window.__traceTimings.phaseAtClick = session ? session.phase() : "idle";
+      showOpen();
+      if (!window.PerfettoHost) {
+        onTraceStatus("Perfetto 组件脚本没有载入。");
+        return;
+      }
+      try {
+        const response = await fetch("/api/traces", { cache: "no-store" });
+        const data = await response.json();
+        layerTraces = data.traces || [];
+        window.PerfettoHost.renderDirections($("trace-side"), data.analysis || {});
+        const picker = $("trace-picker");
+        picker.hidden = layerTraces.length < 2;
+        picker.replaceChildren();
+        for (const trace of layerTraces) {
+          const option = document.createElement("option");
+          option.value = String(trace.id);
+          option.textContent = trace.label || trace.name;
+          picker.append(option);
+        }
+        if (!layerTraces.length) {
+          onTraceStatus("这次没有 trace 文件。");
+          return;
+        }
+        const phase = session ? session.phase() : "idle";
+        if (!session || phase === "error" || phase === "idle") {
+          if (!preloadEpoch) preloadEpoch = 1;
+          const selected = layerTraces.find((item) => String(item.id) === picker.value) || layerTraces[0];
+          ensureSession().load(selected, {
+            epoch: preloadEpoch,
+            force: phase === "error",
+          });
+        }
+      } catch (error) {
+        onTraceStatus(String(error.message || error));
+      }
+      $("trace-back").focus();
+    }
+
+    $("open-trace").addEventListener("click", () => {
+      openTraceLayer();
+    });
+
+    $("trace-back").addEventListener("click", () => {
+      showClosed();
+      if (!$("open-trace").hidden) $("open-trace").focus();
+    });
+
+    $("trace-retry").addEventListener("click", () => {
+      const picker = $("trace-picker");
+      const selected = layerTraces.find((item) => String(item.id) === picker.value) || layerTraces[0];
+      if (!selected || !window.PerfettoHost) return;
+      $("trace-retry").hidden = true;
+      ensureSession().load(selected, { epoch: preloadEpoch || 1, force: true });
+    });
+
+    $("trace-picker").addEventListener("change", () => {
+      const selected = layerTraces.find((item) => String(item.id) === $("trace-picker").value);
+      if (selected && session) session.load(selected, { epoch: preloadEpoch || 1 });
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && $("trace-layer").classList.contains("is-open")) showClosed();
+    });
+
+    function setBusy(active) {
+      const busy = $("busy");
+      if (busy) {
+        const text = busy.querySelector("p");
+        if (active && text) text.textContent = "正在读取日志并定级";
+        busy.hidden = !active;
+      }
+      $("run").setAttribute("aria-busy", active ? "true" : "false");
+    }
+
+    async function analyze(path) {
+      if (analyzing) return;
+      analyzing = true;
+      viewEpoch += 1;
+      cancelPreload();
+      $("run-error").textContent = "";
+      $("out").hidden = true;
+      setBusy(true);
+      $("browse").disabled = true;
+      $("go").disabled = true;
+      $("go").textContent = "分析中";
+      setTraceLink("busy");
+      try {
+        const data = await postJson("/api/analyze", { path });
+        showPath(data.path || path);
+        setBusy(false);
+        render(data);
+      } catch (error) {
+        $("run-error").textContent = String(error.message || error);
+        showPath(path);
+        setTraceLink("hidden");
+        setBusy(false);
+      } finally {
+        analyzing = false;
+        setBusy(false);
+        $("browse").disabled = false;
+        $("go").disabled = !lastPath;
+        $("go").textContent = "开始分析";
+      }
+    }
+
+    $("path-input").addEventListener("input", () => {
+      lastPath = $("path-input").value.trim();
+      $("go").disabled = analyzing || !lastPath;
+    });
+
+    $("browse").addEventListener("click", async () => {
+      if (analyzing) return;
+      $("run-error").textContent = "";
+      $("browse").disabled = true;
+      $("browse").textContent = "选择中…";
+      try {
+        const data = await postJson("/api/pick", {});
+        if (!data.cancelled && data.path) showPath(data.path);
+      } catch (error) {
+        $("run-error").textContent = String(error.message || error);
+      } finally {
+        $("browse").disabled = analyzing;
+        $("browse").textContent = "浏览…";
+        if (!analyzing) $("path-input").focus();
+      }
+    });
+
+    $("run").addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (analyzing) return;
+      const path = $("path-input").value.trim();
+      if (path) analyze(path);
+    });
+
+    function renderThread(history) {
+      const thread = $("thread");
+      thread.replaceChildren();
+      for (const turn of history || []) {
+        const block = document.createElement("div");
+        block.className = "turn";
+        const who = document.createElement("div");
+        who.className = "who " + (turn.source === "rules" ? "muted" : "ok");
+        who.textContent = turn.role === "user" ? "提问" : (turn.source === "model" ? "模型" : "规则结论");
+        const body = document.createElement("p");
+        body.textContent = turn.text || "";
+        block.append(who, body);
+        if (turn.note) {
+          const note = document.createElement("p");
+          note.className = "muted";
+          note.textContent = turn.note;
+          block.append(note);
+        }
+        thread.append(block);
+      }
+    }
+
+    $("ask").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const question = $("question").value.trim();
+      if (!question) return;
+      $("ask-go").disabled = true;
+      $("ask-go").textContent = "回答中";
+      try {
+        const data = await postJson("/api/ask", { question });
+        $("question").value = "";
+        renderThread(data.history);
+      } catch (error) {
+        const thread = $("thread");
+        const note = document.createElement("p");
+        note.className = "error";
+        note.textContent = String(error.message || error);
+        thread.append(note);
+      } finally {
+        $("ask-go").disabled = false;
+        $("ask-go").textContent = "提问";
+        $("question").focus();
+      }
+    });
+
+    function render(data) {
+      $("out").hidden = false;
+      renderThread([]);
+      $("question").value = "";
+      if (data.rules_only === true) {
+        $("ask-hint").textContent = "没有配置 AI。等级和进程来自规则，可以继续问这次结论。";
+      } else if (data.rules_only === false) {
+        $("ask-hint").textContent = "可以继续问这次结论。模型只根据已经列出的证据回答。";
+      } else {
+        $("ask-hint").textContent = "可以继续问这次结论。";
+      }
+      const counts = $("counts");
+      counts.replaceChildren();
+      const summary = data.summary || {};
+      for (const [level, key] of [["P0", "p0"], ["P1", "p1"], ["P2", "p2"]]) {
+        const value = summary[key] || 0;
+        if (!value) continue;
+        const box = document.createElement("div");
+        box.className = "count " + level.toLowerCase();
+        const number = document.createElement("b");
+        number.textContent = String(value);
+        const label = document.createElement("div");
+        label.textContent = level;
+        box.append(number, label);
+        counts.append(box);
+      }
+      const upgrade = data.upgrade && !String(data.upgrade).includes("未找到") ? data.upgrade : "";
+      $("upgrade").textContent = upgrade ? "版本 / 升级：" + upgrade : "";
+      $("ai-error").textContent = data.ai_error || "";
+      $("notes").textContent = (data.notes || []).filter((note) => /无法|失败|超过|不安全|加密/.test(note)).join(" ");
+      const traceCount = (data.traces || []).length;
+      if (traceCount > 0) {
+        shownTraceCount = traceCount;
+        $("trace-hint").textContent = "本次有 " + traceCount + " 份 trace。时间线正在后台加载，可以直接查看。";
+        setTraceLink("ready");
+        startPreload(data.traces);
+      } else {
+        shownTraceCount = 0;
+        $("trace-hint").textContent = "这次目录里没有 trace。";
+        setTraceLink("hidden");
+        cancelPreload();
+        showClosed();
+      }
+      const list = $("list");
+      list.replaceChildren();
+      const processes = data.processes || [];
+      if (!processes.length) {
+        const empty = document.createElement("p");
+        empty.textContent = "没有发现达到 P0 / P1 / P2 的问题进程。";
+        list.append(empty);
+        return;
+      }
+      for (const proc of processes) {
+        const article = document.createElement("article");
+        const head = document.createElement("h3");
+        head.className = "proc";
+        const badge = document.createElement("span");
+        badge.className = "badge " + String(proc.level || "").toLowerCase();
+        badge.textContent = proc.level || "";
+        const name = document.createElement("span");
+        const pid = proc.pid && proc.pid !== "未知" ? "pid " + proc.pid : "";
+        name.textContent = [proc.process || "未知进程", pid].filter(Boolean).join("  ·  ");
+        head.append(badge, name);
+        article.append(head);
+        for (const problem of proc.problems || []) {
+          const block = document.createElement("div");
+          block.className = "problem";
+          const title = document.createElement("h3");
+          title.className = String(problem.level || "").toLowerCase();
+          title.textContent = [problem.level, problem.dimension, problem.title].filter(Boolean).join("  ");
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = [problem.impact, problem.time, problem.event, problem.upgrade].filter(Boolean).join("  ·  ");
+          block.append(title, meta);
+          if (problem.cause) {
+            const cause = document.createElement("p");
+            cause.textContent = problem.cause;
+            block.append(cause);
+          }
+          const lines = (problem.evidence || []).filter(Boolean);
+          if (lines.length) {
+            const details = document.createElement("details");
+            details.className = "evidence";
+            const summary = document.createElement("summary");
+            summary.textContent = "原文";
+            const pre = document.createElement("pre");
+            pre.textContent = lines.join("\n");
+            details.append(summary, pre);
+            block.append(details);
+          }
+          article.append(block);
+        }
+        list.append(article);
+      }
+    }
+
+    async function restoreConclusion() {
+      const epoch = viewEpoch;
+      try {
+        const response = await fetch("/api/report", { cache: "no-store" });
+        if (epoch !== viewEpoch || !response.ok) return;
+        const data = await response.json();
+        const report = data && data.report;
+        if (epoch !== viewEpoch) return;
+        if (!report || typeof report !== "object" || !report.summary || typeof report.summary !== "object") return;
+        if (report.path && $("path-input").value.trim() === (lastPath || "")) showPath(report.path);
+        if (epoch !== viewEpoch) return;
+        render(report);
+      } catch (error) {
+        return;
+      }
+    }
+
+    setTraceLink("hidden");
+    loadConfig();
+  </script>
+</body>
+</html>

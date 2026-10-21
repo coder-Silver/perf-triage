@@ -1,0 +1,26 @@
+10-20 11:00:00.100  1000  1000 I SystemServer: ro.build.display.id=RQ1A.210105.003
+10-20 11:00:01.000  1800  1800 E Watchdog: WATCHDOG KILLING SYSTEM PROCESS: system_server
+10-20 11:00:02.000  1234  1234 E ActivityManager: ANR in com.demo.app (com.demo.app/1234)
+10-20 11:00:02.100  1234  1234 E ActivityManager: Reason: Input dispatching timed out
+10-20 11:00:03.000  2222  2222 E AndroidRuntime: FATAL EXCEPTION: main
+10-20 11:00:03.100  2222  2222 E AndroidRuntime: Process: com.demo.game, PID: 2222
+10-20 11:00:05.000  3333  3333 E Choreographer: Skipped 42 frames! The application may be doing too much work on its main thread.
+10-20 11:00:06.000  4000  4000 E ThermalService: CPU throttling due to temperature
+10-20 11:00:07.000  5000  5000 E lmkd: Kill 'com.demo.bg' (5000), reason: lowmemorykiller device is low on memory
+10-20 11:00:08.000  1000  1000 W SystemServer: Slow operation on system_server took 8000ms
+10-20 11:00:09.000  1000  1000 I update_engine: OTA upgrade finished
+10-20 11:01:00.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 0
+10-20 11:01:01.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 1
+10-20 11:01:02.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 2
+10-20 11:01:03.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 3
+10-20 11:01:04.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 4
+10-20 11:01:05.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 5
+10-20 11:01:06.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 6
+10-20 11:01:07.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 7
+10-20 11:01:08.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 8
+10-20 11:01:09.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 9
+10-20 11:01:10.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 10
+10-20 11:01:11.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 11
+10-20 11:01:12.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 12
+10-20 11:01:13.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 13
+10-20 11:01:14.000  3333  3333 E Foo: java.lang.IllegalStateException: boom 14

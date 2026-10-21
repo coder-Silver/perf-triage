@@ -86,3 +86,13 @@ Trace 页还会对「有数据但未达到等级」的方向写一句初步结�
 - Mac 提示没有 python3：先安装 Python，再双击。
 - Trace 时间线空白：第一次打开 Perfetto 界面需要能访问 `https://ui.perfetto.dev`。分析结束后会在后台开始加载，点「查看 trace 分析」时如果还在下载，等它进入时间线即可。
 - 只有 bugreport、没有 `.pftrace`：可以做日志定级，不会出现可点的「查看 trace 分析」。
+
+## 许可证
+
+本项目代码采用 [MIT License](LICENSE)。
+
+`vendor/` 下的第三方组件遵循各自许可证：
+
+- `vendor/python`：Python Software Foundation License，见 `vendor/python/LICENSE.txt`
+- `vendor/trace_processor_shell.exe`：Perfetto，Apache License 2.0
+

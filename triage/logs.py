@@ -112,7 +112,7 @@ class _Bucket:
             self.last_time = when
         if event and not self.event:
             self.event = event
-        if len(self.lines) < 4:
+        if len(self.lines) < 8:
             self.lines.append(line[:400])
 
 

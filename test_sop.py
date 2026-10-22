@@ -94,9 +94,17 @@ def test_explain_attaches_only_matching_ids() -> None:
             }, ensure_ascii=False)}}]}
             return json.dumps(body).encode()
 
-    with patch("triage.ai.urllib.request.urlopen", return_value=Response()):
+    captured = {}
+
+    def fake_open(request, timeout=0):
+        captured["body"] = request.data.decode("utf-8")
+        return Response()
+
+    with patch("triage.ai.urllib.request.urlopen", side_effect=fake_open):
         error = explain(findings, "https://api.deepseek.com", "sk-test", "deepseek-flash")
     assert error is None
+    assert "line" in captured["body"]
+    assert "不能改成别的等级" in captured["body"]
     assert findings[0].cause == "窗口内有 ANR 原文"
     assert findings[1].cause == "模型没有解释这一条。等级仍以规则证据为准。"
     print("explain binding ok")
